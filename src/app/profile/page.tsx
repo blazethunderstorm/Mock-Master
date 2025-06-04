@@ -469,7 +469,7 @@ const ProfessionalProfile: React.FC = () => {
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-3xl font-bold text-[#00E5FF]">{interview.score || 0}/10</p>
+                        <p className="text-3xl font-bold text-[#00E5FF]">{interview.score || 0}/100</p>
                         <button className="mt-2 text-[#00E5FF] hover:underline text-sm">View Details</button>
                       </div>
                     </div>
@@ -493,13 +493,13 @@ const ProfessionalProfile: React.FC = () => {
                                     </span>
                                   </div>
 
-                                  <div className="w-max bg-gray-700 rounded-full h-2 mt-2">
+                                  <div className="w-full bg-gray-700 rounded-full h-2 mt-2 overflow-hidden">
                                     <div 
                                       className={`h-2 rounded-full ${
                                         category.score >= 80 ? 'bg-green-400' :
                                         category.score >= 60 ? 'bg-yellow-400' : 'bg-red-400'
                                       }`}
-                                      style={{ width: `${(category.score / 10) * 100}%` }}
+                                      style={{ width: `${category.score}%` }}
                                     ></div>
                                   </div>
                                 </div>
@@ -542,7 +542,7 @@ const ProfessionalProfile: React.FC = () => {
                                 <div key={qaIndex} className="bg-[#0E1525] rounded-lg p-3">
                                   <div className="flex justify-between items-center mb-2">
                                     <span className="text-white text-sm font-medium">Question {questionId}</span>
-                                    <span className="text-[#00E5FF] text-sm font-bold">{analysis.score}/10</span>
+                                    <span className="text-[#00E5FF] text-sm font-bold">{analysis.score}/100</span>
                                   </div>
                                   {analysis.timeAssessment && (
                                     <p className="text-gray-400 text-xs mb-1">
