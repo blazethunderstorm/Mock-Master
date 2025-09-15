@@ -442,42 +442,173 @@ const ProfessionalProfile: React.FC = () => {
           </div>
         )}
 
-        {/* Interview History Tab */}
+{/* Interview History Tab */}
         {activeTab === 'Interview History' && (
           <div className="space-y-4">
             {interviewHistory.length > 0 ? (
-              interviewHistory.map((interview, index) => (
-                <div 
-                  key={index} 
-                  className="bg-[#161E2E] rounded-2xl p-6 flex justify-between items-center"
-                >
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">{interview.title}</h3>
-                    <p className="text-gray-400">{interview.company} • {interview.date} • {interview.duration}</p>
-                    <p className="text-gray-300 mt-2">{interview.feedback}</p>
+              interviewHistory.map((interview, index) => {
+                // Parse JSON feedback if it exists
+                let parsedFeedback = null;
+                try {
+                  if (typeof interview.feedback === 'string' && interview.feedback.startsWith('{')) {
+                    parsedFeedback = JSON.parse(interview.feedback);
+                  }
+                } catch (e) {
+                  // If parsing fails, use original feedback
+                }
+
+                return (
+                  <div 
+                    key={index} 
+                    className="bg-[#161E2E] rounded-2xl p-6"
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-xl font-semibold text-white">{interview.title || 'Mock Interview'}</h3>
+                        <p className="text-gray-400">
+                          {interview.company || 'Not Specified'} • {interview.date || 'Sep 14, 2025'} • {interview.duration}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-3xl font-bold text-[#00E5FF]">{interview.score || 0}/10</p>
+                        <button className="mt-2 text-[#00E5FF] hover:underline text-sm">View Details</button>
+                      </div>
+                    </div>
+
+                    {/* Enhanced Feedback Display */}
+                    {parsedFeedback ? (
+                      <div className="space-y-4">
+                        {/* Categories Performance */}
+                        {parsedFeedback.categories && (
+                          <div>
+                            <h4 className="text-[#00E5FF] font-semibold mb-2">Performance Breakdown</h4>
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {parsedFeedback.categories.map((category, catIndex) => (
+                                <div key={catIndex} className="bg-[#0E1525] rounded-lg p-3">
+                                  <div className="flex justify-between items-center">
+                                    <div className="text-white text-sm font-medium">{category.name}</div>
+                                    <div className={`text-sm font-bold ${
+                                      category.score >= 80 ? 'text-green-400' :
+                                      category.score >= 60 ? 'text-yellow-400' : 'text-red-400'
+                                    }`}>
+                                      {category.score}/100
+                                    </div>
+                                  </div>
+                                  {/* Progress Bar */}
+                                  <div className="w-max bg-gray-700 rounded-full  mt-2">
+                                    <div 
+                                      className={`h-2 rounded-full ${
+                                        category.score >= 80 ? 'bg-green-400' :
+                                        category.score >= 60 ? 'bg-yellow-400' : 'bg-red-400'
+                                      }`}
+                                      style={{ width: `${(category.score / 10) * 100}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Strengths */}
+                        {parsedFeedback.strengths && parsedFeedback.strengths.length > 0 && (
+                          <div>
+                            <h4 className="text-green-400 font-semibold mb-2">✅ Strengths</h4>
+                            <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                              <ul className="list-disc list-inside space-y-1 text-green-300 text-sm">
+                                {parsedFeedback.strengths.map((strength, strIndex) => (
+                                  <li key={strIndex}>{strength}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Areas for Improvement */}
+                        {parsedFeedback.improvements && parsedFeedback.improvements.length > 0 && (
+                          <div>
+                            <h4 className="text-yellow-400 font-semibold mb-2">💡 Areas for Improvement</h4>
+                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                              <ul className="list-disc list-inside space-y-1 text-yellow-300 text-sm">
+                                {parsedFeedback.improvements.map((improvement, impIndex) => (
+                                  <li key={impIndex}>{improvement}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Question Analysis */}
+                        {parsedFeedback.questionAnalysis && Object.keys(parsedFeedback.questionAnalysis).length > 0 && (
+                          <div>
+                            <h4 className="text-[#00E5FF] font-semibold mb-2">📝 Question Analysis</h4>
+                            <div className="space-y-2">
+                              {Object.entries(parsedFeedback.questionAnalysis).map(([questionId, analysis], qaIndex) => (
+                                <div key={qaIndex} className="bg-[#0E1525] rounded-lg p-3">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-white text-sm font-medium">Question {questionId}</span>
+                                    <span className="text-[#00E5FF] text-sm font-bold">{analysis.score}/10</span>
+                                  </div>
+                                  {analysis.timeAssessment && (
+                                    <p className="text-gray-400 text-xs mb-1">
+                                      <span className="font-medium">Time:</span> {analysis.timeAssessment}
+                                    </p>
+                                  )}
+                                  {analysis.strengths && analysis.strengths.length > 0 && (
+                                    <p className="text-green-300 text-xs mb-1">
+                                      <span className="font-medium">Strengths:</span> {analysis.strengths.join(', ')}
+                                    </p>
+                                  )}
+                                  {analysis.improvements && analysis.improvements.length > 0 && (
+                                    <p className="text-yellow-300 text-xs">
+                                      <span className="font-medium">Improvements:</span> {analysis.improvements.join(', ')}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Key Points */}
+                        {parsedFeedback.keyPoints && Object.keys(parsedFeedback.keyPoints).length > 0 && (
+                          <div>
+                            <h4 className="text-[#00E5FF] font-semibold mb-2">🎯 Key Insights</h4>
+                            <div className="bg-[#0E1525] rounded-lg p-3">
+                              {Object.entries(parsedFeedback.keyPoints).map(([pointId, point], kpIndex) => (
+                                <div key={kpIndex} className="flex justify-between items-center py-1">
+                                  <span className="text-gray-300 text-sm">Point {pointId}</span>
+                                  <span className="text-[#00E5FF] text-sm font-bold">{point.score}/10</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // Fallback for non-JSON feedback
+                      <div className="bg-[#0E1525] rounded-lg p-4">
+                        <h4 className="text-[#00E5FF] font-semibold mb-2">📋 Feedback</h4>
+                        <p className="text-gray-300 text-sm">{interview.feedback || 'No detailed feedback available.'}</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-[#00E5FF]">{interview.score}/10</p>
-                    <button className="mt-2 text-[#00E5FF] hover:underline">View Details</button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="bg-[#161E2E] rounded-2xl p-12 text-center">
                 <p className="text-gray-500 text-xl mb-2">📋 No interviews yet</p>
                 <p className="text-gray-400 mb-4">Your interview history will appear here once you start taking interviews.</p>
-              <Link
-                href="/templates"
-                className="mt-4 bg-[#00E5FF] text-[#0E1525] px-6 py-2 rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Take Your First Interview
-              </Link>
-
+                <Link
+                  href="/templates"
+                  className="mt-4 bg-[#00E5FF] text-[#0E1525] px-6 py-2 rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  Take Your First Interview
+                </Link>
               </div>
             )}
           </div>
         )}
-
         {/* Settings Tab */}
         {activeTab === 'Settings' && (
           <div className="grid md:grid-cols-2 gap-6">
