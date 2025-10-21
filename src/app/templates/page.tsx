@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlusCircle, Loader2, Trash2, Calendar, Clock, MapPin } from "lucide-react";
-import Link from "next/link";
 
 interface Template {
   id: string;
@@ -18,7 +17,7 @@ interface Template {
   role: string;
   experienceLevel: string;
   description: string;
-  createdAt: Date;
+  createdAt: Date | string;
 }
 
 interface Interview {
@@ -26,24 +25,17 @@ interface Interview {
   title: string;
   candidateName: string;
   candidateEmail: string;
-  scheduledDate: Date;
+  scheduledDate: Date | string;
   duration: number;
   location: string;
   status: 'scheduled' | 'completed' | 'cancelled';
   templateId?: string;
-  template?: Template;
 }
 
-// Mock data - replace with actual API calls
-const mockTemplates: Template[] = []
-;
-
-const mockInterviews: Interview[] = [];
-
 export default function TemplatesPage() {
-  const [templates, setTemplates] = useState<Template[]>(mockTemplates);
-  const [interviews, setInterviews] = useState<Interview[]>(mockInterviews);
-  const [isLoading, setIsLoading] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [interviews, setInterviews] = useState<Interview[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Template form state
   const [newTemplate, setNewTemplate] = useState({
@@ -69,6 +61,41 @@ export default function TemplatesPage() {
   const [interviewDialogOpen, setInterviewDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Load data on mount
+  useEffect(() => {
+    loadTemplates();
+    loadInterviews();
+  }, []);
+
+  const loadTemplates = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/templates');
+      const data = await response.json();
+      
+      if (data.success && data.templates) {
+        setTemplates(data.templates);
+      }
+    } catch (error) {
+      console.error("Error loading templates:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadInterviews = async () => {
+    try {
+      const response = await fetch('/api/interviews');
+      const data = await response.json();
+      
+      if (data.success && data.interviews) {
+        setInterviews(data.interviews);
+      }
+    } catch (error) {
+      console.error("Error loading interviews:", error);
+    }
+  };
+
   const handleTemplateInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setNewTemplate(prev => ({ ...prev, [name]: value }));
@@ -84,11 +111,14 @@ export default function TemplatesPage() {
   };
 
   const handleInterviewSelectChange = (value: string, field: string) => {
-    setNewInterview(prev => ({ ...prev, [field]: value }));
+    if (field === 'duration') {
+      setNewInterview(prev => ({ ...prev, [field]: parseInt(value) }));
+    } else {
+      setNewInterview(prev => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleCreateTemplate = async () => {
-    // Validation
     if (!newTemplate.name.trim() || !newTemplate.role || !newTemplate.experienceLevel) {
       alert("Please fill in all required fields (Name, Role, Experience Level)");
       return;
@@ -96,30 +126,29 @@ export default function TemplatesPage() {
 
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const template: Template = {
-        id: Date.now().toString(),
-        name: newTemplate.name,
-        role: newTemplate.role,
-        experienceLevel: newTemplate.experienceLevel,
-        description: newTemplate.description,
-        createdAt: new Date()
-      };
-
-      setTemplates(prev => [template, ...prev]);
-      
-      // Reset form
-      setNewTemplate({
-        name: "",
-        role: "",
-        experienceLevel: "",
-        description: ""
+      const response = await fetch('/api/templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newTemplate),
       });
-      
-      setTemplateDialogOpen(false);
-      alert("Template created successfully!");
+
+      const data = await response.json();
+
+      if (data.success) {
+        setTemplates(prev => [data.template, ...prev]);
+        setNewTemplate({
+          name: "",
+          role: "",
+          experienceLevel: "",
+          description: ""
+        });
+        setTemplateDialogOpen(false);
+        alert("Template created successfully!");
+      } else {
+        alert(data.error || "Failed to create template");
+      }
     } catch (error) {
       console.error("Error creating template:", error);
       alert("Failed to create template");
@@ -129,7 +158,6 @@ export default function TemplatesPage() {
   };
 
   const handleScheduleInterview = async () => {
-    // Validation
     if (!newInterview.title.trim() || !newInterview.candidateName.trim() || 
         !newInterview.candidateEmail.trim() || !newInterview.scheduledDate || 
         !newInterview.scheduledTime) {
@@ -139,39 +167,43 @@ export default function TemplatesPage() {
 
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const scheduledDateTime = `${newInterview.scheduledDate}T${newInterview.scheduledTime}`;
       
-      const scheduledDateTime = new Date(`${newInterview.scheduledDate}T${newInterview.scheduledTime}`);
-      
-      const interview: Interview = {
-        id: Date.now().toString(),
-        title: newInterview.title,
-        candidateName: newInterview.candidateName,
-        candidateEmail: newInterview.candidateEmail,
-        scheduledDate: scheduledDateTime,
-        duration: newInterview.duration,
-        location: newInterview.location,
-        status: 'scheduled',
-        templateId: newInterview.templateId || undefined
-      };
-
-      setInterviews(prev => [interview, ...prev]);
-      
-      // Reset form
-      setNewInterview({
-        title: "",
-        candidateName: "",
-        candidateEmail: "",
-        scheduledDate: "",
-        scheduledTime: "",
-        duration: 60,
-        location: "",
-        templateId: ""
+      const response = await fetch('/api/interviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newInterview.title,
+          candidateName: newInterview.candidateName,
+          candidateEmail: newInterview.candidateEmail,
+          scheduledDate: scheduledDateTime,
+          duration: newInterview.duration,
+          location: newInterview.location,
+          templateId: newInterview.templateId || null
+        }),
       });
-      
-      setInterviewDialogOpen(false);
-      alert("Interview scheduled successfully!");
+
+      const data = await response.json();
+
+      if (data.success) {
+        setInterviews(prev => [data.interview, ...prev]);
+        setNewInterview({
+          title: "",
+          candidateName: "",
+          candidateEmail: "",
+          scheduledDate: "",
+          scheduledTime: "",
+          duration: 60,
+          location: "",
+          templateId: ""
+        });
+        setInterviewDialogOpen(false);
+        alert("Interview scheduled successfully!");
+      } else {
+        alert(data.error || "Failed to schedule interview");
+      }
     } catch (error) {
       console.error("Error scheduling interview:", error);
       alert("Failed to schedule interview");
@@ -181,16 +213,46 @@ export default function TemplatesPage() {
   };
 
   const handleDeleteTemplate = async (id: string) => {
-    if (confirm("Are you sure you want to delete this template?")) {
-      setTemplates(prev => prev.filter(template => template.id !== id));
-      alert("Template deleted successfully!");
+    if (!confirm("Are you sure you want to delete this template?")) return;
+
+    try {
+      const response = await fetch(`/api/templates?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setTemplates(prev => prev.filter(template => template.id !== id));
+        alert("Template deleted successfully!");
+      } else {
+        alert(data.error || "Failed to delete template");
+      }
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      alert("Failed to delete template");
     }
   };
 
   const handleDeleteInterview = async (id: string) => {
-    if (confirm("Are you sure you want to delete this interview?")) {
-      setInterviews(prev => prev.filter(interview => interview.id !== id));
-      alert("Interview deleted successfully!");
+    if (!confirm("Are you sure you want to delete this interview?")) return;
+
+    try {
+      const response = await fetch(`/api/interviews?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setInterviews(prev => prev.filter(interview => interview.id !== id));
+        alert("Interview deleted successfully!");
+      } else {
+        alert(data.error || "Failed to delete interview");
+      }
+    } catch (error) {
+      console.error("Error deleting interview:", error);
+      alert("Failed to delete interview");
     }
   };
 
@@ -203,10 +265,27 @@ export default function TemplatesPage() {
     }
   };
 
+  const formatDate = (date: Date | string) => {
+    const d = new Date(date);
+    return d.toLocaleDateString();
+  };
+
+  const formatTime = (date: Date | string) => {
+    const d = new Date(date);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
-
-      <Tabs defaultValue="templates" className="space-y-6 mt-26">
+      <Tabs defaultValue="templates" className="space-y-6 mt-24">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="templates">Templates</TabsTrigger>
           <TabsTrigger value="interviews">Scheduled Interviews</TabsTrigger>
@@ -343,13 +422,11 @@ export default function TemplatesPage() {
                   <p className="text-gray-600 text-sm mb-4">{template.description}</p>
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-400">
-                      Created {template.createdAt.toLocaleDateString()}
+                      Created {formatDate(template.createdAt)}
                     </span>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/interview?templateId=${template.id}`}>
-                          Use Template
-                        </Link>
+                      <Button variant="outline" size="sm">
+                        Use Template
                       </Button>
                       <Button
                         variant="destructive"
@@ -544,11 +621,11 @@ export default function TemplatesPage() {
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <div className="flex items-center gap-1">
                           <Calendar size={16} />
-                          {interview.scheduledDate.toLocaleDateString()}
+                          {formatDate(interview.scheduledDate)}
                         </div>
                         <div className="flex items-center gap-1">
                           <Clock size={16} />
-                          {interview.scheduledDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {formatTime(interview.scheduledDate)}
                         </div>
                         <div className="flex items-center gap-1">
                           <MapPin size={16} />
@@ -583,10 +660,8 @@ export default function TemplatesPage() {
                   </div>
                   
                   <div className="flex gap-2 mt-4">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/interview?interviewId=${interview.id}`}>
-                        Start Interview
-                      </Link>
+                    <Button variant="outline" size="sm">
+                      Start Interview
                     </Button>
                     <Button variant="outline" size="sm">
                       Send Reminder
