@@ -8,24 +8,23 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                  String                @id @default(cuid())
+  name                String?
+  email               String                @unique
+  emailVerified       DateTime?
+  image               String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
 
-  // Profile fields  
-  location      String?
-  bio           String?
-  skills        String[]  @default([])
+  location            String?
+  bio                 String?
+  skills              String[]              @default([])
 
-  accounts      Account[]
-  sessions      Session[]
-  
-  templates     Template[]
-  interviews    Interview[]
+  accounts            Account[]
+  sessions            Session[]
+  templates           Template[]
+  interviews          Interview[]
+  scheduledInterviews ScheduledInterview[]
 }
 
 model Account {
@@ -56,6 +55,22 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+model ScheduledInterview {
+  id              String   @id @default(uuid())
+  title           String
+  candidateName   String
+  candidateEmail  String
+  scheduledDate   DateTime
+  duration        Int      @default(60)
+  location        String?
+  status          String   @default("scheduled") 
+  templateId      String?
+  template        Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
 model VerificationToken {
   identifier String
   token      String   @unique
@@ -65,17 +80,19 @@ model VerificationToken {
 }
 
 model Template {
-  id              String   @id @default(uuid())
-  name            String
-  role            String
-  experienceLevel String
-  description     String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  String                @id @default(uuid())
+  name                String
+  role                String
+  experienceLevel     String
+  description         String
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
   
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId String
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId              String
+  scheduledInterviews ScheduledInterview[]
 }
+
 
 model Interview {
   id        Int        @id @default(autoincrement())
